@@ -13,7 +13,7 @@ class WP_Prune_Command extends WP_CLI_Command {
 	/**
 	 * Remove posts to save database space.
 	 *
-	 * Defaults to removing 90% of posts in all post types older than six months old.
+	 * Defaults to removing 80% of posts in all post types older than six months old.
 	 *
 	 * [--before=<before>]
 	 * : Cutoff date to prune posts before. Defaults to "6 months ago".
@@ -31,8 +31,20 @@ class WP_Prune_Command extends WP_CLI_Command {
 		$before = $assoc_args['before'] ?? date( 'Y-m-d H:i:s', strtotime( '-6 months' ) );
 		$sample_rate = floatval( $assoc_args['sample_rate'] ?? '.8' );
 
+		$post_types = explode( ',', $assoc_args['post_type'] ?? '' );
+		$post_types_sql = implode(
+			',',
+			array_map(
+				function ( $type ) use ( $wpdb ) {
+					return $wpdb->prepare( '%s', $type );
+				},
+				$post_types
+			)
+		);
+
+
 		$posts_where = [
-			'type' => isset( $assoc_args['post_type'] ) ? "post_type IN ({$assoc_args['post_type']})" : '',
+			'type' => count( $post_types ) ? "post_type IN ({$post_types_sql})" : '',
 			'date' => $wpdb->prepare( "post_date < %s", $before ),
 			'sample' => $wpdb->prepare( "RAND() < %s", $sample_rate ),
 		];
@@ -42,7 +54,7 @@ class WP_Prune_Command extends WP_CLI_Command {
 		$sql = "
 			DELETE {$wpdb->posts}, {$wpdb->postmeta}
 			FROM {$wpdb->posts}
-			INNER JOIN {$wpdb->postmeta} ON {$wpdb->postmeta}.post_id = {$wpdb->posts}.ID
+			LEFT JOIN {$wpdb->postmeta} ON {$wpdb->postmeta}.post_id = {$wpdb->posts}.ID
 			WHERE $where_sql;
 		";
 
