@@ -53,12 +53,20 @@ class WP_Prune_Command extends WP_CLI_Command {
 
 	/**
 	 * Remove revisions and auto-drafts to save database space.
-	 *
 	 */
 	function revisions() {
+		global $wpdb;
 
+		$sql = "
+			DELETE {$wpdb->posts}, {$wpdb->postmeta}
+			FROM {$wpdb->posts}
+			LEFT JOIN {$wpdb->postmeta} ON {$wpdb->postmeta}.post_id = {$wpdb->posts}.ID
+			WHERE post_type = 'revision' OR post_status = 'auto-draft';
+";
+
+		$post_count = $wpdb->query( $sql );
+		WP_CLI::success( "Deleted $post_count rows (including posts and postmeta)." );
 	}
-
 }
 
 WP_CLI::add_command( 'prune', 'WP_Prune_Command' );
