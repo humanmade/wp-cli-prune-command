@@ -28,7 +28,12 @@ class WP_Prune_Command extends WP_CLI_Command {
 	function posts( $args, $assoc_args ) {
 		global $wpdb;
 
-		$before = $assoc_args['before'] ?? date( 'Y-m-d H:i:s', strtotime( '-6 months' ) );
+		if ( ! empty( $assoc_args['before'] ) ) {
+			$before = strtotime( $assoc_args['before'] );
+		} else {
+			$before = date( 'Y-m-d H:i:s', strtotime( '-6 months' ) );
+		}
+		
 		$sample_rate = floatval( $assoc_args['sample_rate'] ?? '.8' );
 
 		$post_types = explode( ',', $assoc_args['post_type'] ?? '' );
